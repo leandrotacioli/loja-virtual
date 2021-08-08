@@ -3,7 +3,9 @@
 Projeto de Loja Virtual Fictícia
 
 > API REST com Spring Boot
+
 > Banco de dados - H2
+
 > Documentação via Swagger - http://localhost:8081/swagger-ui/
 
 ----------------------------------------------------------------------------------
@@ -11,6 +13,9 @@ Projeto de Loja Virtual Fictícia
 ## TODO
 
 > Autenticação de Usuários
+
 > Cadastros de Pedidos
-> Front-end
+
+> Front-ent
+
 > Criação de Testes
