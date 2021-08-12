@@ -4,6 +4,10 @@ import com.leandrotacioli.lojavirtual.entities.Cliente;
 import com.leandrotacioli.lojavirtual.entities.Produto;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 public interface ClienteRepository extends JpaRepository<Cliente, Long> {
+
+    List<Cliente> findAllByNomeContainingIgnoreCase(String nome);
 
 }

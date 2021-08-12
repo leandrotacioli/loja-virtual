@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,6 +45,33 @@ public class ProdutoController {
         for (Produto produto : produtos) {
             produto.add(linkTo(methodOn(ProdutoController.class).consultarProduto(produto.getCodigo())).withSelfRel());
         }
+
+        // Ordena os produtos por descrição
+        produtos.sort(Comparator.comparing(Produto::getDescricao));
+
+        return new ResponseEntity<>(produtos, HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Lista todos os produtos por descrição", response = Produto.class, httpMethod = "GET")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Retorna uma lista com todos os produtos", response = List.class),
+            @ApiResponse(code = 404, message = "Listagem de produtos não encontrada", response = ApiResponseEntity.class)
+    })
+    @RequestMapping(value = "/descricao/{descricao}", method = RequestMethod.GET)
+    public ResponseEntity<List<Produto>> listarProdutosPorDescricao(@PathVariable("descricao") String descricao) {
+        List<Produto> produtos = produtoService.listarProdutosPorDescricao(descricao);
+
+        if (produtos == null || produtos.size() == 0) {
+            throw new NotFoundException("Listagem de produtos não encontrada.");
+        }
+
+        // Adicionando HATEOAS
+        for (Produto produto : produtos) {
+            produto.add(linkTo(methodOn(ProdutoController.class).consultarProduto(produto.getCodigo())).withSelfRel());
+        }
+
+        // Ordena os produtos por descrição
+        produtos.sort(Comparator.comparing(Produto::getDescricao));
 
         return new ResponseEntity<>(produtos, HttpStatus.OK);
     }

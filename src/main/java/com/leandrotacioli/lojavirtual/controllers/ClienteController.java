@@ -13,9 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -44,6 +42,33 @@ public class ClienteController {
         for (Cliente cliente : clientes) {
             cliente.add(linkTo(methodOn(ClienteController.class).consultarCliente(cliente.getCodigo())).withSelfRel());
         }
+
+        // Ordena os clientes por nome
+        clientes.sort(Comparator.comparing(Cliente::getNome));
+
+        return new ResponseEntity<>(clientes, HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Lista todos os clientes por nome", response = Cliente.class, httpMethod = "GET")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Retorna uma lista com todos os clientes", response = List.class),
+            @ApiResponse(code = 404, message = "Listagem de clientes não encontrada", response = ApiResponseEntity.class)
+    })
+    @RequestMapping(value = "/nome/{nome}", method = RequestMethod.GET)
+    public ResponseEntity<List<Cliente>> listarClientesPorNome(@PathVariable("nome") String nome) {
+        List<Cliente> clientes = clienteService.listarClientesPorNome(nome);
+
+        if (clientes == null || clientes.size() == 0) {
+            throw new NotFoundException("Listagem de clientes não encontrada.");
+        }
+
+        // Adicionando HATEOAS
+        for (Cliente cliente : clientes) {
+            cliente.add(linkTo(methodOn(ClienteController.class).consultarCliente(cliente.getCodigo())).withSelfRel());
+        }
+
+        // Ordena os clientes por nome
+        clientes.sort(Comparator.comparing(Cliente::getNome));
 
         return new ResponseEntity<>(clientes, HttpStatus.OK);
     }

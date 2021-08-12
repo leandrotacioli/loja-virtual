@@ -18,6 +18,10 @@ public class ClienteService {
         return clienteRepository.findAll();
     }
 
+    public List<Cliente> listarClientesPorNome(String nome) {
+        return clienteRepository.findAllByNomeContainingIgnoreCase(nome);
+    }
+
     public Optional<Cliente> consultarCliente(Long id) {
         return clienteRepository.findById(id);
     }

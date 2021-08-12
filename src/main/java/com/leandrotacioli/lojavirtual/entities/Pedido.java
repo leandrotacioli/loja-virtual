@@ -4,7 +4,7 @@ import lombok.Data;
 
 import javax.persistence.*;
 import java.io.Serializable;
-import java.util.Date;
+import java.time.LocalDate;
 
 @Data
 @Entity
@@ -21,7 +21,7 @@ public class Pedido implements Serializable {
     private Cliente cliente;
 
     @Column(name = "DataPedido", columnDefinition = "date", nullable = false)
-    private Date dataPedido;
+    private LocalDate dataPedido;
 
     @Column(name = "ValorProdutos", columnDefinition = "double", nullable = false)
     private double valorProdutos;
