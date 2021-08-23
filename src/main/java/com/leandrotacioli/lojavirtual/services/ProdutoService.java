@@ -1,12 +1,22 @@
 package com.leandrotacioli.lojavirtual.services;
 
+import com.leandrotacioli.lojavirtual.controllers.ProdutoController;
 import com.leandrotacioli.lojavirtual.entities.Produto;
 import com.leandrotacioli.lojavirtual.repositories.ProdutoRepository;
+import com.leandrotacioli.lojavirtual.utils.exceptions.GeneralException;
+import com.leandrotacioli.lojavirtual.utils.exceptions.MissingParameterException;
+import com.leandrotacioli.lojavirtual.utils.exceptions.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Service
 public class ProdutoService {
@@ -15,19 +25,98 @@ public class ProdutoService {
     private ProdutoRepository produtoRepository;
 
     public List<Produto> listarProdutos() {
-        return produtoRepository.findAll();
+        List<Produto> produtos = produtoRepository.findAll();
+
+        if (produtos == null || produtos.size() == 0) {
+            throw new NotFoundException("Listagem de produtos não encontrada.");
+        }
+
+        // Adicionando HATEOAS
+        for (Produto produto : produtos) {
+            produto.add(linkTo(methodOn(ProdutoController.class).consultarProduto(produto.getCodigo())).withSelfRel());
+        }
+
+        // Ordena os produtos por descrição
+        produtos.sort(Comparator.comparing(Produto::getDescricao));
+
+        return produtos;
     }
 
     public List<Produto> listarProdutosPorDescricao(String descricao) {
-        return produtoRepository.findAllByDescricaoContainingIgnoreCase(descricao);
+        List<Produto> produtos = produtoRepository.findAllByDescricaoContainingIgnoreCase(descricao);
+
+        if (produtos == null || produtos.size() == 0) {
+            throw new NotFoundException("Listagem de produtos não encontrada para a descrição informada.");
+        }
+
+        // Adicionando HATEOAS
+        for (Produto produto : produtos) {
+            produto.add(linkTo(methodOn(ProdutoController.class).consultarProduto(produto.getCodigo())).withSelfRel());
+        }
+
+        // Ordena os produtos por descrição
+        produtos.sort(Comparator.comparing(Produto::getDescricao));
+
+        return produtos;
     }
 
     public Optional<Produto> consultarProduto(Long id) {
-        return produtoRepository.findById(id);
+        Optional<Produto> produto = produtoRepository.findById(id);
+
+        if (produto.isEmpty()) {
+            throw new NotFoundException("Produto não encontrado - Código: " + id + ".");
+        }
+
+        return produto;
     }
 
     public Produto salvarProduto(Produto produto) {
+        validarParametros(produto);
+
         return produtoRepository.save(produto);
+    }
+
+    public void adicionarEstoque(Long id, int qtde) {
+        Optional<Produto> produto = produtoRepository.findById(id);
+
+        if (produto.isEmpty()) {
+            throw new NotFoundException("Produto não encontrado para adicionar quantidade ao estoque - Código: " + id + ".");
+        }
+
+        if (qtde <= 0) {
+            throw new GeneralException(HttpStatus.BAD_REQUEST, "Erro nos parâmetros fornecidos para a requisição solicitada.", "Quantidade inválida - Valor deve ser maior que zero.");
+        }
+
+        produtoRepository.addQtdeEstoque(id, qtde);
+    }
+
+    public void removerEstoque(Long id, int qtde) {
+        Optional<Produto> produto = produtoRepository.findById(id);
+
+        if (produto.isEmpty()) {
+            throw new NotFoundException("Produto não encontrado para remover quantidade do estoque - Código: " + id + ".");
+        }
+
+        if (qtde <= 0) {
+            throw new GeneralException(HttpStatus.BAD_REQUEST, "Erro nos parâmetros fornecidos para a requisição solicitada.", "Quantidade inválida - Valor deve ser maior que zero.");
+        }
+
+        if (produto.get().getQtdeEstoque() < qtde) {
+            throw new GeneralException(HttpStatus.BAD_REQUEST, "Erro nos parâmetros fornecidos para a requisição solicitada.", "Quantidade informada a ser removida é maior do que a existente no estoque (" + produto.get().getQtdeEstoque() + ").");
+        }
+
+        produtoRepository.removeQtdeEstoque(id, qtde);
+    }
+
+    private void validarParametros(Produto produto) {
+        List<String> errors = new ArrayList<>();
+
+        if (produto.getDescricao() == null) errors.add("Campo 'descricao' - Descrição do Produto (String)");
+        if (produto.getPreco() == null) errors.add("Campo 'preco' - Preço do Produto (Double #.##)");
+
+        if (errors.size() > 0) {
+            throw new MissingParameterException(errors);
+        }
     }
 
 }

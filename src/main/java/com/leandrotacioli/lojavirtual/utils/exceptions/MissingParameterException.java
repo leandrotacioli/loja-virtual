@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 public class MissingParameterException extends RuntimeException {
 
-    private final List<String> errors = new ArrayList<>();
+    private List<String> errors = new ArrayList<>();
 
     public MissingParameterException(List<String> errors) {
         this.errors.addAll(errors);

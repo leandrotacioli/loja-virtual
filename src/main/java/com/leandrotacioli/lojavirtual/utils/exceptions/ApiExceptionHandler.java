@@ -71,4 +71,11 @@ public class ApiExceptionHandler {
                 .body(new ApiResponseEntity<>(HttpStatus.BAD_REQUEST, "Parâmetros obrigatórios não informados.", e.getErrors()));
     }
 
+    @ExceptionHandler(GeneralException.class)
+    public ResponseEntity handleGeneralException(GeneralException e) {
+        return ResponseEntity
+                .status(e.getHttpStatus())
+                .body(new ApiResponseEntity<>(e.getHttpStatus(), e.getMessage(), e.getErrors()));
+    }
+
 }

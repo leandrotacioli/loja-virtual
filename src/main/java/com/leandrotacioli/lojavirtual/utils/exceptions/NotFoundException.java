@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 public class NotFoundException extends RuntimeException {
 
-    private final List<String> errors = new ArrayList<>();
+    private List<String> errors = new ArrayList<>();
 
     public NotFoundException(List<String> errors) {
         this.errors.addAll(errors);

@@ -3,8 +3,6 @@ package com.leandrotacioli.lojavirtual.controllers;
 import com.leandrotacioli.lojavirtual.entities.Produto;
 import com.leandrotacioli.lojavirtual.services.ProdutoService;
 import com.leandrotacioli.lojavirtual.utils.api.ApiResponseEntity;
-import com.leandrotacioli.lojavirtual.utils.exceptions.MissingParameterException;
-import com.leandrotacioli.lojavirtual.utils.exceptions.NotFoundException;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
@@ -13,13 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 @RequestMapping("/produtos")
@@ -35,21 +28,7 @@ public class ProdutoController {
     })
     @RequestMapping(value = "", method = RequestMethod.GET)
     public ResponseEntity<List<Produto>> listarProdutos() {
-        List<Produto> produtos = produtoService.listarProdutos();
-
-        if (produtos == null || produtos.size() == 0) {
-            throw new NotFoundException("Listagem de produtos não encontrada.");
-        }
-
-        // Adicionando HATEOAS
-        for (Produto produto : produtos) {
-            produto.add(linkTo(methodOn(ProdutoController.class).consultarProduto(produto.getCodigo())).withSelfRel());
-        }
-
-        // Ordena os produtos por descrição
-        produtos.sort(Comparator.comparing(Produto::getDescricao));
-
-        return new ResponseEntity<>(produtos, HttpStatus.OK);
+        return new ResponseEntity<>(produtoService.listarProdutos(), HttpStatus.OK);
     }
 
     @ApiOperation(value = "Lista todos os produtos por descrição", response = Produto.class, httpMethod = "GET")
@@ -59,21 +38,7 @@ public class ProdutoController {
     })
     @RequestMapping(value = "/descricao/{descricao}", method = RequestMethod.GET)
     public ResponseEntity<List<Produto>> listarProdutosPorDescricao(@PathVariable("descricao") String descricao) {
-        List<Produto> produtos = produtoService.listarProdutosPorDescricao(descricao);
-
-        if (produtos == null || produtos.size() == 0) {
-            throw new NotFoundException("Listagem de produtos não encontrada.");
-        }
-
-        // Adicionando HATEOAS
-        for (Produto produto : produtos) {
-            produto.add(linkTo(methodOn(ProdutoController.class).consultarProduto(produto.getCodigo())).withSelfRel());
-        }
-
-        // Ordena os produtos por descrição
-        produtos.sort(Comparator.comparing(Produto::getDescricao));
-
-        return new ResponseEntity<>(produtos, HttpStatus.OK);
+        return new ResponseEntity<>(produtoService.listarProdutosPorDescricao(descricao), HttpStatus.OK);
     }
 
     @ApiOperation(value = "Retorna dados de um produto", response = Produto.class, httpMethod = "GET")
@@ -84,13 +49,7 @@ public class ProdutoController {
     })
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
     public ResponseEntity<Produto> consultarProduto(@PathVariable("id") Long id) {
-        Optional<Produto> produto = produtoService.consultarProduto(id);
-
-        if (produto.isEmpty()) {
-            throw new NotFoundException("Produto não encontrado - Código: " + id);
-        }
-
-        return new ResponseEntity<>(produto.get(), HttpStatus.OK);
+        return new ResponseEntity<>(produtoService.consultarProduto(id).get(), HttpStatus.OK);
     }
 
     @ApiOperation(value = "Realiza a gravação de um produto", response = Produto.class, httpMethod = "POST")
@@ -99,22 +58,32 @@ public class ProdutoController {
             @ApiResponse(code = 400, message = "Requisição inválida - Valide os parâmetros e seus respectivos valores", response = ApiResponseEntity.class),
     })
     @RequestMapping(value = "/salvar", method = RequestMethod.POST)
-    @ResponseStatus(HttpStatus.CREATED)
-    public Produto salvarProduto(@RequestBody Produto produto) {
-        validarParametros(produto);
-
-        return produtoService.salvarProduto(produto);
+    public ResponseEntity<Produto> salvarProduto(@RequestBody Produto produto) {
+        return new ResponseEntity<>(produtoService.salvarProduto(produto), HttpStatus.CREATED);
     }
 
-    private void validarParametros(Produto produto) {
-        List<String> errors = new ArrayList<>();
+    @ApiOperation(value = "Adiciona uma quantidade ao estoque de um produto.", response = Produto.class, httpMethod = "POST")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Quantidade adicionada ao estoque com sucesso", response = Produto.class),
+            @ApiResponse(code = 400, message = "Requisição inválida - Valide os parâmetros e seus respectivos valores", response = ApiResponseEntity.class),
+    })
+    @RequestMapping(value = "/{id}/adicionar-estoque", method = RequestMethod.POST)
+    public ResponseEntity<Produto> adicionarEstoque(@PathVariable("id") Long id, @RequestBody String qtde) {
+        produtoService.adicionarEstoque(id, Integer.parseInt(qtde));
 
-        if (produto.getDescricao() == null) errors.add("Campo 'descricao' - Descrição do Produto (String)");
-        if (produto.getPreco() == null) errors.add("Campo 'preco' - Preço do Produto (Double #.##)");
+        return new ResponseEntity<>(produtoService.consultarProduto(id).get(), HttpStatus.OK);
+    }
 
-        if (errors.size() > 0) {
-            throw new MissingParameterException(errors);
-        }
+    @ApiOperation(value = "Remove uma quantidade do estoque de um produto.", response = Produto.class, httpMethod = "POST")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Quantidade removida do estoque com sucesso", response = Produto.class),
+            @ApiResponse(code = 400, message = "Requisição inválida - Valide os parâmetros e seus respectivos valores", response = ApiResponseEntity.class),
+    })
+    @RequestMapping(value = "/{id}/remover-estoque", method = RequestMethod.POST)
+    public ResponseEntity<Produto> removerEstoque(@PathVariable("id") Long id, @RequestBody String qtde) {
+        produtoService.removerEstoque(id, Integer.parseInt(qtde));
+
+        return new ResponseEntity<>(produtoService.consultarProduto(id).get(), HttpStatus.OK);
     }
 
 }
