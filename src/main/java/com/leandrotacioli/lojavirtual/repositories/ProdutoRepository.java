@@ -10,6 +10,9 @@ import java.util.List;
 
 public interface ProdutoRepository extends JpaRepository<Produto, Long> {
 
+    @Query("SELECT p FROM Produto p WHERE p.qtdeEstoque > 0")
+    List<Produto> findAllEstoque();
+
     List<Produto> findAllByDescricaoContainingIgnoreCase(String descricao);
 
     @Modifying(clearAutomatically = true)

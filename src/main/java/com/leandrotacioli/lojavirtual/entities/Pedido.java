@@ -1,10 +1,12 @@
 package com.leandrotacioli.lojavirtual.entities;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.Data;
 
 import javax.persistence.*;
 import java.io.Serializable;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Entity
@@ -17,11 +19,11 @@ public class Pedido implements Serializable {
     private Long codigo;
 
     @ManyToOne
-    @JoinColumn(name = "CodCliente", columnDefinition = "int", nullable = false)
+    @JoinColumn(name = "CodCliente", referencedColumnName = "CodCliente", columnDefinition = "bigint", nullable = false)
     private Cliente cliente;
 
-    @Column(name = "DataPedido", columnDefinition = "date", nullable = false)
-    private LocalDate dataPedido;
+    @Column(name = "DataPedido", columnDefinition = "datetime", nullable = false)
+    private LocalDateTime dataPedido;
 
     @Column(name = "ValorProdutos", columnDefinition = "double", nullable = false)
     private double valorProdutos;
@@ -31,5 +33,14 @@ public class Pedido implements Serializable {
 
     @Column(name = "ValorTotal", columnDefinition = "double", nullable = false)
     private double valorTotal;
+
+    @JsonManagedReference
+    @OneToMany(mappedBy = "pedido")
+    private List<PedidoProduto> produtos;
+
+    @Override
+    public String toString() {
+        return super.toString();
+    }
 
 }

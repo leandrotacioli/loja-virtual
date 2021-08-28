@@ -1,11 +1,14 @@
 package com.leandrotacioli.lojavirtual.services;
 
 import com.leandrotacioli.lojavirtual.controllers.ProdutoController;
+import com.leandrotacioli.lojavirtual.dtos.requests.ProdutoRequest;
+import com.leandrotacioli.lojavirtual.dtos.responses.ProdutoResponse;
 import com.leandrotacioli.lojavirtual.entities.Produto;
 import com.leandrotacioli.lojavirtual.repositories.ProdutoRepository;
 import com.leandrotacioli.lojavirtual.utils.exceptions.GeneralException;
 import com.leandrotacioli.lojavirtual.utils.exceptions.MissingParameterException;
 import com.leandrotacioli.lojavirtual.utils.exceptions.NotFoundException;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,58 +25,57 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class ProdutoService {
 
     @Autowired
+    private ModelMapper modelMapper;
+
+    @Autowired
     private ProdutoRepository produtoRepository;
 
-    public List<Produto> listarProdutos() {
+    public List<ProdutoResponse> listarProdutos() {
         List<Produto> produtos = produtoRepository.findAll();
 
         if (produtos == null || produtos.size() == 0) {
             throw new NotFoundException("Listagem de produtos não encontrada.");
         }
 
-        // Adicionando HATEOAS
-        for (Produto produto : produtos) {
-            produto.add(linkTo(methodOn(ProdutoController.class).consultarProduto(produto.getCodigo())).withSelfRel());
-        }
-
-        // Ordena os produtos por descrição
-        produtos.sort(Comparator.comparing(Produto::getDescricao));
-
-        return produtos;
+        return criaResponse(produtos);
     }
 
-    public List<Produto> listarProdutosPorDescricao(String descricao) {
+    public List<ProdutoResponse> listarProdutosEmEstoque() {
+        List<Produto> produtos = produtoRepository.findAllEstoque();
+
+        if (produtos == null || produtos.size() == 0) {
+            throw new NotFoundException("Listagem de produtos em estoque não encontrada.");
+        }
+
+        return criaResponse(produtos);
+    }
+
+    public List<ProdutoResponse> listarProdutosPorDescricao(String descricao) {
         List<Produto> produtos = produtoRepository.findAllByDescricaoContainingIgnoreCase(descricao);
 
         if (produtos == null || produtos.size() == 0) {
             throw new NotFoundException("Listagem de produtos não encontrada para a descrição informada.");
         }
 
-        // Adicionando HATEOAS
-        for (Produto produto : produtos) {
-            produto.add(linkTo(methodOn(ProdutoController.class).consultarProduto(produto.getCodigo())).withSelfRel());
-        }
-
-        // Ordena os produtos por descrição
-        produtos.sort(Comparator.comparing(Produto::getDescricao));
-
-        return produtos;
+        return criaResponse(produtos);
     }
 
-    public Optional<Produto> consultarProduto(Long id) {
+    public ProdutoResponse consultarProduto(Long id) {
         Optional<Produto> produto = produtoRepository.findById(id);
 
         if (produto.isEmpty()) {
             throw new NotFoundException("Produto não encontrado - Código: " + id + ".");
         }
 
-        return produto;
+        return criaResponse(produto.get());
     }
 
-    public Produto salvarProduto(Produto produto) {
-        validarParametros(produto);
+    public ProdutoResponse salvarProduto(ProdutoRequest produtoRequest) {
+        validarParametros(produtoRequest);
 
-        return produtoRepository.save(produto);
+        Produto produto = produtoRepository.save(modelMapper.map(produtoRequest, Produto.class));
+
+        return criaResponse(produto);
     }
 
     public void adicionarEstoque(Long id, int qtde) {
@@ -108,11 +110,33 @@ public class ProdutoService {
         produtoRepository.removeQtdeEstoque(id, qtde);
     }
 
-    private void validarParametros(Produto produto) {
+    private ProdutoResponse criaResponse(Produto produto) {
+        ProdutoResponse produtoResponse = modelMapper.map(produto, ProdutoResponse.class);
+
+        // Adiciona HATEOAS
+        produtoResponse.add(linkTo(methodOn(ProdutoController.class).consultarProduto(produtoResponse.getCodigo())).withSelfRel());
+
+        return produtoResponse;
+    }
+
+    private List<ProdutoResponse> criaResponse(List<Produto> produtos) {
+        List<ProdutoResponse> produtosResponse = new ArrayList<>();
+
+        for (Produto produto : produtos) {
+            produtosResponse.add(criaResponse(produto));
+        }
+
+        // Ordena os produtos por descrição
+        produtosResponse.sort(Comparator.comparing(ProdutoResponse::getDescricao));
+
+        return produtosResponse;
+    }
+
+    private void validarParametros(ProdutoRequest produtoRequest) {
         List<String> errors = new ArrayList<>();
 
-        if (produto.getDescricao() == null) errors.add("Campo 'descricao' - Descrição do Produto (String)");
-        if (produto.getPreco() == null) errors.add("Campo 'preco' - Preço do Produto (Double #.##)");
+        if (produtoRequest.getDescricao() == null) errors.add("Campo 'descricao' - Descrição do Produto (String)");
+        if (produtoRequest.getPreco() == null) errors.add("Campo 'preco' - Preço do Produto (Double #.##)");
 
         if (errors.size() > 0) {
             throw new MissingParameterException(errors);

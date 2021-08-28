@@ -1,7 +1,6 @@
 package com.leandrotacioli.lojavirtual.entities;
 
 import lombok.Data;
-import org.springframework.hateoas.RepresentationModel;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -9,7 +8,7 @@ import java.io.Serializable;
 @Data
 @Entity
 @Table(name = "Produtos")
-public class Produto extends RepresentationModel<Produto> implements Serializable {
+public class Produto implements Serializable {
 
     @Id
     @Column(name = "CodProduto")

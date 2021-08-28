@@ -1,7 +1,6 @@
 package com.leandrotacioli.lojavirtual.entities;
 
 import lombok.Data;
-import org.springframework.hateoas.RepresentationModel;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -10,7 +9,7 @@ import java.time.LocalDate;
 @Data
 @Entity
 @Table(name = "Clientes")
-public class Cliente extends RepresentationModel<Cliente> implements Serializable {
+public class Cliente implements Serializable {
 
     @Id
     @Column(name = "CodCliente")

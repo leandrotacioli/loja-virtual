@@ -1,10 +1,13 @@
 package com.leandrotacioli.lojavirtual.services;
 
 import com.leandrotacioli.lojavirtual.controllers.ClienteController;
+import com.leandrotacioli.lojavirtual.dtos.requests.ClienteRequest;
+import com.leandrotacioli.lojavirtual.dtos.responses.ClienteResponse;
 import com.leandrotacioli.lojavirtual.entities.Cliente;
 import com.leandrotacioli.lojavirtual.repositories.ClienteRepository;
 import com.leandrotacioli.lojavirtual.utils.exceptions.MissingParameterException;
 import com.leandrotacioli.lojavirtual.utils.exceptions.NotFoundException;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -20,68 +24,79 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class ClienteService {
 
     @Autowired
+    private ModelMapper modelMapper;
+
+    @Autowired
     private ClienteRepository clienteRepository;
 
-    public List<Cliente> listarClientes() {
+    public List<ClienteResponse> listarClientes() {
         List<Cliente> clientes = clienteRepository.findAll();
 
         if (clientes == null || clientes.size() == 0) {
-            throw new NotFoundException("Listagem de clientes não encontrada.");
+           throw new NotFoundException("Listagem de clientes não encontrada.");
         }
 
-        // Adicionando HATEOAS
-        for (Cliente cliente : clientes) {
-            cliente.add(linkTo(methodOn(ClienteController.class).consultarCliente(cliente.getCodigo())).withSelfRel());
-        }
-
-        // Ordena os clientes por nome
-        clientes.sort(Comparator.comparing(Cliente::getNome));
-
-        return clientes;
+        return criaResponse(clientes);
     }
 
-    public List<Cliente> listarClientesPorNome(String nome) {
+    public List<ClienteResponse> listarClientesPorNome(String nome) {
         List<Cliente> clientes = clienteRepository.findAllByNomeContainingIgnoreCase(nome);
 
         if (clientes == null || clientes.size() == 0) {
             throw new NotFoundException("Listagem de clientes não encontrada para o nome informado.");
         }
 
-        // Adicionando HATEOAS
-        for (Cliente cliente : clientes) {
-            cliente.add(linkTo(methodOn(ClienteController.class).consultarCliente(cliente.getCodigo())).withSelfRel());
-        }
-
-        // Ordena os clientes por nome
-        clientes.sort(Comparator.comparing(Cliente::getNome));
-
-        return clientes;
+        return criaResponse(clientes);
     }
 
-    public Optional<Cliente> consultarCliente(Long id) {
+    public ClienteResponse consultarCliente(Long id) {
         Optional<Cliente> cliente = clienteRepository.findById(id);
 
         if (cliente.isEmpty()) {
             throw new NotFoundException("Cliente não encontrado - Código: " + id);
         }
 
-        return cliente;
+        return criaResponse(cliente.get());
     }
 
-    public Cliente salvarCliente(Cliente cliente) {
-        validarParametros(cliente);
+    public ClienteResponse salvarCliente(ClienteRequest clienteRequest) {
+        validarParametros(clienteRequest);
 
-        return clienteRepository.save(cliente);
+        Cliente cliente = clienteRepository.save(modelMapper.map(clienteRequest, Cliente.class));
+
+        return criaResponse(cliente);
     }
 
-    private void validarParametros(Cliente cliente) {
+    private ClienteResponse criaResponse(Cliente cliente) {
+        ClienteResponse clienteResponse = modelMapper.map(cliente, ClienteResponse.class);
+
+        // Adiciona HATEOAS
+        clienteResponse.add(linkTo(methodOn(ClienteController.class).consultarCliente(clienteResponse.getCodigo())).withSelfRel());
+
+        return clienteResponse;
+    }
+
+    private List<ClienteResponse> criaResponse(List<Cliente> clientes) {
+        List<ClienteResponse> clientesResponse = new ArrayList<>();
+
+        for (Cliente cliente : clientes) {
+            clientesResponse.add(criaResponse(cliente));
+        }
+
+        // Ordena os clientes por nome
+        clientesResponse.sort(Comparator.comparing(ClienteResponse::getNome));
+
+        return clientesResponse;
+    }
+
+    private void validarParametros(ClienteRequest clienteRequest) {
         List<String> errors = new ArrayList<>();
 
-        if (cliente.getNome() == null) errors.add("Campo 'nome' - Nome do Cliente (String)");
-        if (cliente.getDataNascimento() == null) errors.add("Campo 'dataNascimento' - Data de Nascimento do Cliente (yyyy-mm-dd)");
-        if (cliente.getEndereco() == null) errors.add("Campo 'endereco' - Endereço do Cliente (String)");
-        if (cliente.getCidade() == null) errors.add("Campo 'cidade' - Cidade do Cliente (String)");
-        if (cliente.getEstado() == null) errors.add("Campo 'estado' - Estado do Cliente (String)");
+        if (clienteRequest.getNome() == null) errors.add("Campo 'nome' - Nome do Cliente (String)");
+        if (clienteRequest.getDataNascimento() == null) errors.add("Campo 'dataNascimento' - Data de Nascimento do Cliente (yyyy-mm-dd)");
+        if (clienteRequest.getEndereco() == null) errors.add("Campo 'endereco' - Endereço do Cliente (String)");
+        if (clienteRequest.getCidade() == null) errors.add("Campo 'cidade' - Cidade do Cliente (String)");
+        if (clienteRequest.getEstado() == null) errors.add("Campo 'estado' - Estado do Cliente (String)");
 
         if (errors.size() > 0) {
             throw new MissingParameterException(errors);
