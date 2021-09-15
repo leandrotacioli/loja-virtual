@@ -14,8 +14,6 @@ Projeto de Loja Virtual Fictícia
 
 > Autenticação de Usuários
 
-> Cadastros de Pedidos
-
 > Front-ent
 
 > Criação de Testes

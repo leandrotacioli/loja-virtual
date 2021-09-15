@@ -4,11 +4,18 @@ import com.leandrotacioli.lojavirtual.controllers.ClienteController;
 import com.leandrotacioli.lojavirtual.dtos.requests.ClienteRequest;
 import com.leandrotacioli.lojavirtual.dtos.responses.ClienteResponse;
 import com.leandrotacioli.lojavirtual.entities.Cliente;
+import com.leandrotacioli.lojavirtual.entities.Pedido;
 import com.leandrotacioli.lojavirtual.repositories.ClienteRepository;
+import com.leandrotacioli.lojavirtual.repositories.PedidoRepository;
+import com.leandrotacioli.lojavirtual.utils.api.ApiResponseEntity;
+import com.leandrotacioli.lojavirtual.utils.exceptions.GeneralException;
 import com.leandrotacioli.lojavirtual.utils.exceptions.MissingParameterException;
 import com.leandrotacioli.lojavirtual.utils.exceptions.NotFoundException;
+import io.swagger.annotations.ApiResponse;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -28,6 +35,9 @@ public class ClienteService {
 
     @Autowired
     private ClienteRepository clienteRepository;
+
+    @Autowired
+    private PedidoRepository pedidoRepository;
 
     public List<ClienteResponse> listarClientes() {
         List<Cliente> clientes = clienteRepository.findAll();
@@ -65,6 +75,40 @@ public class ClienteService {
         Cliente cliente = clienteRepository.save(modelMapper.map(clienteRequest, Cliente.class));
 
         return criaResponse(cliente);
+    }
+
+    public ClienteResponse atualizarCliente(Long id, ClienteRequest clienteRequest) {
+        Optional<Cliente> cliente = clienteRepository.findById(id);
+
+        if (cliente.isEmpty()) {
+            throw new GeneralException(HttpStatus.BAD_REQUEST, "Não foi possível atualizar os dados do cliente.", "Cliente não encontrado - Código: " + id);
+        }
+
+        validarParametros(clienteRequest);
+
+        Cliente clienteUpdate = modelMapper.map(clienteRequest, Cliente.class);
+        clienteUpdate.setCodigo(id);
+
+        return criaResponse(clienteRepository.save(clienteUpdate));
+    }
+
+    public ResponseEntity removerCliente(Long id) {
+        Optional<Cliente> cliente = clienteRepository.findById(id);
+
+        if (cliente.isEmpty()) {
+            throw new GeneralException(HttpStatus.BAD_REQUEST, "Não foi possível remover o cliente.", "Cliente não encontrado - Código: " + id);
+        }
+
+        // Valida se o cliente já possui pedidos cadastrados
+        if (pedidoRepository.existsByCliente(id)) {
+            throw new GeneralException(HttpStatus.CONFLICT, "Operação não permitida.", "Cliente já possui pedidos cadastrados.");
+        }
+
+        clienteRepository.delete(cliente.get());
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(new ApiResponseEntity<>(HttpStatus.OK, "Cliente excluído com sucesso.", ""));
     }
 
     private ClienteResponse criaResponse(Cliente cliente) {

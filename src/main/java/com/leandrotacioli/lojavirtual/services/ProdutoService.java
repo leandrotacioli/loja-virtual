@@ -4,13 +4,16 @@ import com.leandrotacioli.lojavirtual.controllers.ProdutoController;
 import com.leandrotacioli.lojavirtual.dtos.requests.ProdutoRequest;
 import com.leandrotacioli.lojavirtual.dtos.responses.ProdutoResponse;
 import com.leandrotacioli.lojavirtual.entities.Produto;
+import com.leandrotacioli.lojavirtual.repositories.PedidoProdutoRepository;
 import com.leandrotacioli.lojavirtual.repositories.ProdutoRepository;
+import com.leandrotacioli.lojavirtual.utils.api.ApiResponseEntity;
 import com.leandrotacioli.lojavirtual.utils.exceptions.GeneralException;
 import com.leandrotacioli.lojavirtual.utils.exceptions.MissingParameterException;
 import com.leandrotacioli.lojavirtual.utils.exceptions.NotFoundException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -29,6 +32,9 @@ public class ProdutoService {
 
     @Autowired
     private ProdutoRepository produtoRepository;
+
+    @Autowired
+    private PedidoProdutoRepository pedidoProdutoRepository;
 
     public List<ProdutoResponse> listarProdutos() {
         List<Produto> produtos = produtoRepository.findAll();
@@ -76,6 +82,40 @@ public class ProdutoService {
         Produto produto = produtoRepository.save(modelMapper.map(produtoRequest, Produto.class));
 
         return criaResponse(produto);
+    }
+
+    public ProdutoResponse atualizarProduto(Long id, ProdutoRequest produtoRequest) {
+        Optional<Produto> produto = produtoRepository.findById(id);
+
+        if (produto.isEmpty()) {
+            throw new GeneralException(HttpStatus.BAD_REQUEST, "Não foi possível atualizar os dados do produto.", "Produto não encontrado - Código: " + id);
+        }
+
+        validarParametros(produtoRequest);
+
+        Produto produtoUpdate = modelMapper.map(produtoRequest, Produto.class);
+        produtoUpdate.setCodigo(id);
+
+        return criaResponse(produtoRepository.save(produtoUpdate));
+    }
+
+    public ResponseEntity removerProduto(Long id) {
+        Optional<Produto> produto = produtoRepository.findById(id);
+
+        if (produto.isEmpty()) {
+            throw new GeneralException(HttpStatus.BAD_REQUEST, "Não foi possível remover o produto.", "Produto não encontrado - Código: " + id);
+        }
+
+        // Valida se o produto já possui pedidos cadastrados
+        if (pedidoProdutoRepository.existsByProduto(id)) {
+            throw new GeneralException(HttpStatus.CONFLICT, "Operação não permitida.", "Produto já está vinculado a pedidos.");
+        }
+
+        produtoRepository.delete(produto.get());
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(new ApiResponseEntity<>(HttpStatus.OK, "Produto excluído com sucesso.", ""));
     }
 
     public void adicionarEstoque(Long id, int qtde) {

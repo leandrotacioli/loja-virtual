@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.http.HttpResponse;
 import java.util.*;
 
 @RestController
@@ -60,6 +61,27 @@ public class ClienteController {
     @RequestMapping(value = "/salvar", method = RequestMethod.POST)
     public ResponseEntity<ClienteResponse> salvarCliente(@RequestBody ClienteRequest clienteRequest) {
         return new ResponseEntity<>(clienteService.salvarCliente(clienteRequest), HttpStatus.CREATED);
+    }
+
+    @ApiOperation(value = "Realiza a atualização de um cliente", response = ClienteResponse.class, httpMethod = "PUT")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Cliente atualizado com sucesso", response = ClienteResponse.class),
+            @ApiResponse(code = 400, message = "Requisição inválida - Valide os parâmetros e seus respectivos valores", response = ApiResponseEntity.class),
+    })
+    @RequestMapping(value = "/atualizar/{codCliente}", method = RequestMethod.PUT)
+    public ResponseEntity<ClienteResponse> atualizarCliente(@PathVariable("codCliente") Long codigo, @RequestBody ClienteRequest clienteRequest) {
+        return new ResponseEntity<>(clienteService.atualizarCliente(codigo, clienteRequest), HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Realiza a remoção de um cliente", response = ApiResponse.class, httpMethod = "DELETE")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Cliente removido com sucesso", response = ApiResponse.class),
+            @ApiResponse(code = 400, message = "Requisição inválida - Valide os parâmetros e seus respectivos valores", response = ApiResponseEntity.class),
+            @ApiResponse(code = 409, message = "Operação não permitida - Cliente já possui pedidos cadastrados", response = ApiResponseEntity.class),
+    })
+    @RequestMapping(value = "/remover/{codCliente}", method = RequestMethod.DELETE)
+    public ResponseEntity removerCliente(@PathVariable("codCliente") Long codigo) {
+        return clienteService.removerCliente(codigo);
     }
 
 }

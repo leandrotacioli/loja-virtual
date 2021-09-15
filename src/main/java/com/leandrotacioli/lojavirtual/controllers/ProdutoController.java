@@ -72,6 +72,27 @@ public class ProdutoController {
         return new ResponseEntity<>(produtoService.salvarProduto(produtoRequest), HttpStatus.CREATED);
     }
 
+    @ApiOperation(value = "Realiza a atualização de um produto", response = ProdutoResponse.class, httpMethod = "PUT")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Produto atualizado com sucesso", response = ProdutoResponse.class),
+            @ApiResponse(code = 400, message = "Requisição inválida - Valide os parâmetros e seus respectivos valores", response = ApiResponseEntity.class),
+    })
+    @RequestMapping(value = "/atualizar/{codProduto}", method = RequestMethod.PUT)
+    public ResponseEntity<ProdutoResponse> atualizarProduto(@PathVariable("codProduto") Long codigo, @RequestBody ProdutoRequest produtoRequest) {
+        return new ResponseEntity<>(produtoService.atualizarProduto(codigo, produtoRequest), HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Realiza a remoção de um produto", response = ApiResponse.class, httpMethod = "DELETE")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Produto removido com sucesso", response = ApiResponse.class),
+            @ApiResponse(code = 400, message = "Requisição inválida - Valide os parâmetros e seus respectivos valores", response = ApiResponseEntity.class),
+            @ApiResponse(code = 409, message = "Operação não permitida - Produto já está vinculado a pedidos", response = ApiResponseEntity.class),
+    })
+    @RequestMapping(value = "/remover/{codProduto}", method = RequestMethod.DELETE)
+    public ResponseEntity removerProduto(@PathVariable("codProduto") Long codigo) {
+        return produtoService.removerProduto(codigo);
+    }
+
     @ApiOperation(value = "Adiciona uma quantidade ao estoque de um produto.", response = ProdutoResponse.class, httpMethod = "POST")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Quantidade adicionada ao estoque com sucesso", response = ProdutoResponse.class),

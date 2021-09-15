@@ -1,12 +1,14 @@
 package com.leandrotacioli.lojavirtual.utils.exceptions;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.springframework.http.HttpStatus;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class GeneralException extends RuntimeException {
     private HttpStatus httpStatus;
     private String message;

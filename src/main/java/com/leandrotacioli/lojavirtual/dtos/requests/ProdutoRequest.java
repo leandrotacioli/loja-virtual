@@ -9,6 +9,4 @@ public class ProdutoRequest {
 
     private Double preco;
 
-    private int qtdeEstoque;
-
 }

@@ -24,14 +24,20 @@ public class ApiResponseEntity<T> {
         this.statusCode = status.value();
         this.status = status;
         this.message = message;
-        this.errors.add(error);
+
+        if (error != null && error.length() > 0) {
+            this.errors.add(error);
+        }
     }
 
     public ApiResponseEntity(HttpStatus status, String message, List<String> errors) {
         this.statusCode = status.value();
         this.status = status;
         this.message = message;
-        this.errors.addAll(errors);
+
+        if (errors != null && errors.size() > 0) {
+            this.errors.addAll(errors);
+        }
     }
 
 }
